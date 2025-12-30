@@ -9,10 +9,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-/* Desktop default (smaller now) */
-html { font-size: 14px; }  /* smaller desktop font */
+/* Base font size for desktop */
+html { font-size: 14px; }
 body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
-h1,h2{margin-bottom:16px;font-size:1.3em;}
+h1,h2{margin-bottom:16px;}
 ul{list-style:none;padding:0;}
 li{margin:10px 0;}
 button.link-btn{background:none;border:none;color:#2563eb;font-size:1em;cursor:pointer;padding:0;}
@@ -40,7 +40,7 @@ button.link-btn:hover{text-decoration:underline;}
 
 /* Mobile adjustments */
 @media (max-width: 500px) {
-  html { font-size:5vw; } /* text grows on mobile */
+  html { font-size: 18px; } /* bigger text on phones */
   h1,h2{font-size:2rem;}
   .controls { grid-template-columns: 1fr; }
   .controls button { width:100%; font-size:1.1em; }
@@ -166,13 +166,13 @@ function renderGrade(gradeName) {
       input.value = "";
       renderReasons();
       saveClassPoints(gradeName, className, data);
-      // stays on same grade page now
     }
 
-    card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
-    card.querySelector(".btn-take").onclick = () => addReason(-1, "-1점");
-
-    undoBtn.onclick = () => {
+    // prevent default navigation
+    card.querySelector(".btn-add").addEventListener("click", e => { e.preventDefault(); addReason(2, "+2점"); });
+    card.querySelector(".btn-take").addEventListener("click", e => { e.preventDefault(); addReason(-1, "-1점"); });
+    undoBtn.addEventListener("click", e => {
+      e.preventDefault();
       if (!lastEntry) return;
       data.points -= lastEntry.delta;
       data.reasons.pop();
@@ -181,8 +181,7 @@ function renderGrade(gradeName) {
       scoreEl.textContent = data.points;
       renderReasons();
       saveClassPoints(gradeName, className, data);
-      // stays on same grade page
-    };
+    });
 
     grid.appendChild(card);
   }
