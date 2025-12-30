@@ -22,8 +22,8 @@ button.link-btn:hover{text-decoration:underline;}
 .class-name{font-weight:bold;color:#2563eb;}
 .points{font-weight:bold;color:#14532d;float:right;}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
-.controls input{grid-column:span 2;padding:6px;font-size:16px;}
-.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;font-size:16px;}
+.controls input{grid-column:span 2;padding:6px;}
+.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;}
 .btn-add{background:#16a34a;}
 .btn-take{background:#dc2626;}
 .btn-undo{grid-column:span 2;background:#6b7280;}
@@ -35,13 +35,6 @@ button.link-btn:hover{text-decoration:underline;}
 .reason-take{color:#b91c1c;font-weight:bold;}
 .admin-link{position:fixed;bottom:10px;right:10px;opacity:0.7;z-index:1000;}
 .admin-link button{font-size:12px;color:#555;}
-
-/* Responsive text scaling */
-@media (max-width: 768px) {
-  body { font-size: 18px; padding: 12px; }
-  .controls input, .controls button { font-size: 18px; }
-  .reason-entry { font-size: 16px; }
-}
 </style>
 </head>
 <body>
@@ -72,18 +65,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
-let currentGrade = null; // Track currently open grade page
+let classCards = {}; // DOM references for undo
+let currentGrade = null;
 
 // Load grades in real time
-db.ref("grades").on("value", snapshot => {
-  grades = snapshot.val() || {};
-  if (!currentGrade) {
-    renderHome();
-  } else {
-    // If grade page is open, re-render that grade to update points/reasons
-    renderGrade(currentGrade, true);
-  }
-});
+function loadData() {
+  db.ref("grades").on("value", snapshot => {
+    grades = snapshot.val() || {};
+    if(currentGrade) renderGrade(currentGrade, true);
+    else renderHome();
+  });
+}
 
 // Save class data
 function saveClassPoints(gradeName, className, data) {
@@ -92,7 +84,6 @@ function saveClassPoints(gradeName, className, data) {
 
 // HOME
 function renderHome() {
-  currentGrade = null;
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
   const ul = document.getElementById("grade-links");
@@ -121,74 +112,90 @@ function renderGrade(gradeName, isUpdate=false) {
 
   if (!isUpdate) document.getElementById("home").style.display = "none";
 
-  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${gradeName} 점수판</h2><div class="grid"></div>`;
-  const grid = view.querySelector(".grid");
+  if (!isUpdate) {
+    view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${gradeName} 점수판</h2><div class="grid"></div>`;
+    classCards = {};
+  }
 
+  const grid = view.querySelector(".grid");
   const classes = grades[gradeName];
+
   for (const className in classes) {
     const data = classes[className];
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div><span class="class-name">${className}</span><span class="points">${data.points || 0}</span></div>
-      <div class="controls">
-        <input placeholder="이유 입력" maxlength="30">
-        <button class="btn-add">+2</button>
-        <button class="btn-take">-1</button>
-        <button class="btn-undo" disabled>↩ Undo</button>
-      </div>
-      <div class="reasons-wrapper"></div>
-    `;
-    const input = card.querySelector("input");
-    const scoreEl = card.querySelector(".points");
-    const history = card.querySelector(".reasons-wrapper");
-    const undoBtn = card.querySelector(".btn-undo");
-    let lastEntry = null;
 
-    function renderReasons() {
-      history.innerHTML = "";
-      // Show most recent first
-      (data.reasons || []).slice().reverse().forEach(r => {
-        const div = document.createElement("div");
-        div.className = `reason-entry ${r.delta > 0 ? "reason-add" : "reason-take"}`;
-        div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
-        history.appendChild(div);
-      });
-      history.scrollTop = 0; // scroll to top to show most recent
-    }
+    let card, input, scoreEl, history, undoBtn, lastEntry, renderReasons;
 
-    renderReasons();
+    if (!classCards[className]) {
+      card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div><span class="class-name">${className}</span><span class="points">${data.points || 0}</span></div>
+        <div class="controls">
+          <input placeholder="이유 입력" maxlength="30">
+          <button class="btn-add">+2</button>
+          <button class="btn-take">-1</button>
+          <button class="btn-undo" disabled>↩ Undo</button>
+        </div>
+        <div class="reasons-wrapper"></div>
+      `;
+      grid.appendChild(card);
 
-    function addReason(delta, label) {
-      const text = input.value.trim();
-      if (!text) return;
-      const entry = { text: `${label}: ${text}`, time: new Date().toLocaleString("ko-KR"), delta };
-      data.points = (data.points || 0) + delta;
-      data.reasons = data.reasons || [];
-      data.reasons.push(entry);
-      lastEntry = entry;
-      undoBtn.disabled = false;
-      scoreEl.textContent = data.points;
-      input.value = "";
-      renderReasons();
-      saveClassPoints(gradeName, className, data);
-    }
-
-    card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
-    card.querySelector(".btn-take").onclick = () => addReason(-1, "-1점");
-
-    undoBtn.onclick = () => {
-      if (!lastEntry) return;
-      data.points -= lastEntry.delta;
-      data.reasons.pop();
+      input = card.querySelector("input");
+      scoreEl = card.querySelector(".points");
+      history = card.querySelector(".reasons-wrapper");
+      undoBtn = card.querySelector(".btn-undo");
       lastEntry = null;
-      undoBtn.disabled = true;
-      scoreEl.textContent = data.points;
-      renderReasons();
-      saveClassPoints(gradeName, className, data);
-    };
 
-    grid.appendChild(card);
+      renderReasons = () => {
+        history.innerHTML = "";
+        (data.reasons || []).slice().reverse().forEach(r => {
+          const div = document.createElement("div");
+          div.className = `reason-entry ${r.delta > 0 ? "reason-add" : "reason-take"}`;
+          div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
+          history.appendChild(div);
+        });
+        history.scrollTop = 0; // most recent on top
+      };
+
+      renderReasons();
+
+      function addReason(delta, label) {
+        const text = input.value.trim();
+        if (!text) return;
+        const entry = { text: `${label}: ${text}`, time: new Date().toLocaleString("ko-KR"), delta };
+        data.points = (data.points || 0) + delta;
+        data.reasons = data.reasons || [];
+        data.reasons.push(entry);
+        lastEntry = entry;
+        undoBtn.disabled = false;
+        scoreEl.textContent = data.points;
+        input.value = "";
+        renderReasons();
+        saveClassPoints(gradeName, className, data);
+      }
+
+      card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
+      card.querySelector(".btn-take").onclick = () => addReason(-1, "-1점");
+
+      undoBtn.onclick = () => {
+        if (!lastEntry) return;
+        data.points -= lastEntry.delta;
+        data.reasons.pop();
+        lastEntry = null;
+        undoBtn.disabled = true;
+        scoreEl.textContent = data.points;
+        renderReasons();
+        saveClassPoints(gradeName, className, data);
+      };
+
+      classCards[className] = { card, input, scoreEl, history, undoBtn, lastEntry, renderReasons, data };
+    } else {
+      // update points/reasons only
+      const c = classCards[className];
+      c.data = data;
+      c.scoreEl.textContent = data.points || 0;
+      c.renderReasons();
+    }
   }
 }
 
@@ -229,6 +236,8 @@ document.addEventListener("click", e => {
   if (e.target.id === "back-home") renderHome();
   if (e.target.id === "admin-link") checkAdminPassword();
 });
+
+loadData();
 </script>
 
 </body>
