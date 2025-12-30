@@ -9,28 +9,28 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-/* Desktop default */
-html { font-size: 16px; }
+/* Desktop default (smaller now) */
+html { font-size: 14px; }  /* smaller desktop font */
 body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
-h1,h2{margin-bottom:16px;font-size:1.5em;}
+h1,h2{margin-bottom:16px;font-size:1.3em;}
 ul{list-style:none;padding:0;}
 li{margin:10px 0;}
-button.link-btn{background:none;border:none;color:#2563eb;font-size:1.2em;cursor:pointer;padding:0;}
+button.link-btn{background:none;border:none;color:#2563eb;font-size:1em;cursor:pointer;padding:0;}
 button.link-btn:hover{text-decoration:underline;}
-.leader-text{margin-left:8px;font-weight:bold;color:#15803d;font-size:1em;}
+.leader-text{margin-left:8px;font-weight:bold;color:#15803d;font-size:0.9em;}
 .leader-score{color:#000;margin-left:4px;}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:1000px;margin:0 auto;gap:14px;}
 .card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;display:flex;flex-direction:column;}
-.class-name{font-weight:bold;color:#2563eb;font-size:1.1em;}
-.points{font-weight:bold;color:#14532d;margin-left:auto;font-size:1em;}
+.class-name{font-weight:bold;color:#2563eb;font-size:1em;}
+.points{font-weight:bold;color:#14532d;margin-left:auto;font-size:0.9em;}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
-.controls input{grid-column:span 2;padding:6px;font-size:1em;width:100%;}
-.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;font-size:1em;}
+.controls input{grid-column:span 2;padding:6px;font-size:0.9em;width:100%;}
+.controls button{padding:6px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;font-size:0.9em;}
 .btn-add{background:#16a34a;}
 .btn-take{background:#dc2626;}
 .btn-undo{grid-column:span 2;background:#6b7280;}
-.reasons-wrapper{margin-top:10px;max-height:180px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:8px;background:#f9fafb;font-size:0.9em;}
-.reason-entry{font-size:0.9em;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed #ccc;}
+.reasons-wrapper{margin-top:10px;max-height:180px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:8px;background:#f9fafb;font-size:0.8em;}
+.reason-entry{font-size:0.8em;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed #ccc;}
 .reason-entry:last-child{border-bottom:none;}
 .reason-time{font-size:0.7em;color:#555;}
 .reason-add{color:#14532d;font-weight:bold;}
@@ -166,6 +166,7 @@ function renderGrade(gradeName) {
       input.value = "";
       renderReasons();
       saveClassPoints(gradeName, className, data);
+      // stays on same grade page now
     }
 
     card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
@@ -180,6 +181,7 @@ function renderGrade(gradeName) {
       scoreEl.textContent = data.points;
       renderReasons();
       saveClassPoints(gradeName, className, data);
+      // stays on same grade page
     };
 
     grid.appendChild(card);
