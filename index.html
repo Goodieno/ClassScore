@@ -22,8 +22,8 @@ button.link-btn:hover{text-decoration:underline;}
 .class-name{font-weight:bold;color:#2563eb;}
 .points{font-weight:bold;color:#14532d;float:right;}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
-.controls input{grid-column:span 2;padding:6px;}
-.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;}
+.controls input{grid-column:span 2;padding:6px;font-size:16px;}
+.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;font-size:16px;}
 .btn-add{background:#16a34a;}
 .btn-take{background:#dc2626;}
 .btn-undo{grid-column:span 2;background:#6b7280;}
@@ -35,6 +35,13 @@ button.link-btn:hover{text-decoration:underline;}
 .reason-take{color:#b91c1c;font-weight:bold;}
 .admin-link{position:fixed;bottom:10px;right:10px;opacity:0.7;z-index:1000;}
 .admin-link button{font-size:12px;color:#555;}
+
+/* Responsive text scaling */
+@media (max-width: 768px) {
+  body { font-size: 18px; padding: 12px; }
+  .controls input, .controls button { font-size: 18px; }
+  .reason-entry { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -65,14 +72,18 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
+let currentGrade = null; // Track currently open grade page
 
 // Load grades in real time
-function loadData() {
-  db.ref("grades").on("value", snapshot => {
-    grades = snapshot.val() || {};
+db.ref("grades").on("value", snapshot => {
+  grades = snapshot.val() || {};
+  if (!currentGrade) {
     renderHome();
-  });
-}
+  } else {
+    // If grade page is open, re-render that grade to update points/reasons
+    renderGrade(currentGrade, true);
+  }
+});
 
 // Save class data
 function saveClassPoints(gradeName, className, data) {
@@ -81,6 +92,7 @@ function saveClassPoints(gradeName, className, data) {
 
 // HOME
 function renderHome() {
+  currentGrade = null;
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
   const ul = document.getElementById("grade-links");
@@ -103,9 +115,12 @@ function renderHome() {
 }
 
 // GRADE PAGE
-function renderGrade(gradeName) {
-  document.getElementById("home").style.display = "none";
+function renderGrade(gradeName, isUpdate=false) {
+  currentGrade = gradeName;
   const view = document.getElementById("view");
+
+  if (!isUpdate) document.getElementById("home").style.display = "none";
+
   view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${gradeName} 점수판</h2><div class="grid"></div>`;
   const grid = view.querySelector(".grid");
 
@@ -132,14 +147,14 @@ function renderGrade(gradeName) {
 
     function renderReasons() {
       history.innerHTML = "";
-      // reverse order → most recent on top
+      // Show most recent first
       (data.reasons || []).slice().reverse().forEach(r => {
         const div = document.createElement("div");
         div.className = `reason-entry ${r.delta > 0 ? "reason-add" : "reason-take"}`;
         div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
         history.appendChild(div);
       });
-      history.scrollTop = 0; // scroll to top
+      history.scrollTop = 0; // scroll to top to show most recent
     }
 
     renderReasons();
@@ -214,8 +229,6 @@ document.addEventListener("click", e => {
   if (e.target.id === "back-home") renderHome();
   if (e.target.id === "admin-link") checkAdminPassword();
 });
-
-loadData();
 </script>
 
 </body>
