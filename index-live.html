@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>학급 점수판 - 실시간</title>
+
+<style>
+/* --- same styles as your current index.html --- */
+body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+h1, h2 { margin-bottom: 16px; }
+ul { list-style: none; padding: 0; }
+li { margin: 10px 0; }
+button.link-btn { background: none; border: none; color: #2563eb; font-size: 18px; cursor: pointer; padding: 0; }
+button.link-btn:hover { text-decoration: underline; }
+.leader-text { margin-left: 8px; font-weight: bold; color: #15803d; }
+.leader-score { color: #000; margin-left: 4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 1000px; margin: 0 auto; gap: 14px; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
+.class-name { font-weight: bold; color: #2563eb; }
+.points { font-weight: bold; color: #14532d; }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.controls input { grid-column: span 2; padding: 6px; }
+.controls button { padding: 8px; border: none; color: #fff; font-weight: bold; border-radius: 6px; cursor: pointer; }
+.btn-add { background: #16a34a; }
+.btn-take { background: #dc2626; }
+.btn-undo { grid-column: span 2; background: #6b7280; }
+.reasons-wrapper { margin-top: 10px; max-height: 180px; overflow-y: auto; border: 1px solid #ddd; padding: 8px; border-radius: 8px; background: #f9fafb; }
+.reason-entry { font-size: 14px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #ccc; }
+.reason-entry:last-child { border-bottom: none; }
+.reason-time { font-size: 12px; color: #555; }
+.reason-add { color: #14532d; font-weight: bold; }
+.reason-take { color: #b91c1c; font-weight: bold; }
+.admin-link { position: fixed; bottom: 10px; right: 10px; opacity: 0.7; z-index: 1000; }
+.admin-link button { font-size: 12px; color: #555; }
+</style>
+</head>
+
+<body>
+
+<div id="home">
+  <h1>학년 선택</h1>
+  <ul id="grade-links"></ul>
+</div>
+
+<div id="view"></div>
+
+<div class="admin-link">
+  <button class="link-btn" id="admin-link">⚙️ Admin</button>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
+
+// 🔹 Replace this with your Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
+  authDomain: "tally-v-2.firebaseapp.com",
+  projectId: "tally-v-2",
+  storageBucket: "tally-v-2.firebasestorage.app",
+  messagingSenderId: "193194015446",
+  appId: "1:193194015446:web:41f010ef36a74df776a777"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- INITIALIZE DATA IN FIRESTORE ---
+async function initData() {
+  const gradesRef = doc(db, "tally", "grades");
+  const snap = await getDoc(gradesRef);
+  if (!snap.exists()) {
+    // Create default structure
+    const data = {};
+    for (let g = 1; g <= 6; g++) {
+      data[g] = {};
+      for (let c = 1; c <= 8; c++) {
+        data[g][`${g}학년 ${c}반`] = { points: 0, reasons: [] };
+      }
+    }
+    await setDoc(gradesRef, data);
+  }
+}
+
+// --- FETCH LIVE DATA ---
+async function getGrades(callback) {
+  const gradesRef = doc(db, "tally", "grades");
+  onSnapshot(gradesRef, snap => {
+    callback(snap.data());
+  });
+}
+
+// --- UPDATE POINTS ---
+async function addReasonToFirestore(grade, className, delta, text) {
+  const gradesRef = doc(db, "tally", "grades");
+  const entry = {
+    text: (delta > 0 ? "+2점: " : "-1점: ") + text,
+    time: new Date().toLocaleString("ko-KR"),
+    delta
+  };
+  await updateDoc(gradesRef, {
+    [`${grade}.${className}.points`]: (await getDoc(gradesRef)).data()[grade][className].points + delta,
+    [`${grade}.${className}.reasons`]: arrayUnion(entry)
+  });
+}
+
+// --- RENDER LOGIC (similar to your current HTML) ---
+let gradesData = {};
+initData().then(() => {
+  getGrades(data => {
+    gradesData = data;
+    renderHome();
+  });
+});
+
+function renderHome() {
+  document.getElementById("view").innerHTML = "";
+  document.getElementById("home").style.display = "block";
+  const ul = document.getElementById("grade-links");
+  ul.innerHTML = "";
+  for (let g = 1; g <= 6; g++) {
+    const li = document.createElement("li");
+    const classes = gradesData[g];
+    const max = Math.max(...Object.values(classes).map(c => c.points));
+    const leaders = Object.entries(classes).filter(([k,v]) => v.points===max && max>0).map(([k,v])=>({name:k, points:v.points}));
+    let leaderHTML = "";
+    if (leaders.length === 1) {
+      leaderHTML = `<span class="leader-text">👑 ${leaders[0].name}<span class="leader-score">(${leaders[0].points})</span></span>`;
+    } else if (leaders.length>1) {
+      leaderHTML = leaders.map(l=>`<span class="leader-text">🥊 ${l.name}<span class="leader-score">(${l.points})</span></span>`).join("");
+    }
+    li.innerHTML = `<button class="link-btn" data-grade="${g}">${g}학년</button> ${leaderHTML}`;
+    ul.appendChild(li);
+  }
+}
+
+function renderGrade(grade) {
+  document.getElementById("home").style.display="none";
+  const view = document.getElementById("view");
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${grade}학년 점수판</h2><div class="grid"></div>`;
+  const grid = view.querySelector(".grid");
+  Object.entries(gradesData[grade]).forEach(([className, data]) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<div><span class="class-name">${className}</span> — 총점 <span class="points">${data.points}</span></div>
+      <div class="controls">
+        <input placeholder="이유 입력" maxlength="30">
+        <button class="btn-add">+2</button>
+        <button class="btn-take">-1</button>
+        <button class="btn-undo" disabled>↩ Undo</button>
+      </div>
+      <div class="reasons-wrapper"></div>`;
+    const input = card.querySelector("input");
+    const scoreEl = card.querySelector(".points");
+    const history = card.querySelector(".reasons-wrapper");
+
+    function renderReasons() {
+      history.innerHTML = "";
+      data.reasons.forEach(r=>{
+        const div=document.createElement("div");
+        div.className=`reason-entry ${r.delta>0?'reason-add':'reason-take'}`;
+        div.innerHTML=`<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
+        history.appendChild(div);
+      });
+      history.scrollTop = history.scrollHeight;
+    }
+    renderReasons();
+
+    card.querySelector(".btn-add").onclick = async ()=>{
+      if(!input.value.trim()) return;
+      await addReasonToFirestore(grade, className, 2, input.value.trim());
+      input.value="";
+    };
+    card.querySelector(".btn-take").onclick = async ()=>{
+      if(!input.value.trim()) return;
+      await addReasonToFirestore(grade, className, -1, input.value.trim());
+      input.value="";
+    };
+
+    grid.appendChild(card);
+  });
+}
+
+document.addEventListener("click", e=>{
+  if(e.target.dataset.grade) renderGrade(+e.target.dataset.grade);
+  if(e.target.id==="back-home") renderHome();
+});
+
+</script>
+
+</body>
+</html>
