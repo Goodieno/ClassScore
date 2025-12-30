@@ -132,13 +132,14 @@ function renderGrade(gradeName) {
 
     function renderReasons() {
       history.innerHTML = "";
-      (data.reasons || []).forEach(r => {
+      // reverse order → most recent on top
+      (data.reasons || []).slice().reverse().forEach(r => {
         const div = document.createElement("div");
         div.className = `reason-entry ${r.delta > 0 ? "reason-add" : "reason-take"}`;
         div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
         history.appendChild(div);
       });
-      history.scrollTop = history.scrollHeight;
+      history.scrollTop = 0; // scroll to top
     }
 
     renderReasons();
