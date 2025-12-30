@@ -9,32 +9,42 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
-h1,h2{margin-bottom:16px;}
+html { font-size: 4vw; } /* base scaling for mobile */
+body { font-family: Arial, sans-serif; padding: 1rem; background: #f9fafb; }
+h1,h2{margin-bottom:0.5em;font-size:2rem;}
 ul{list-style:none;padding:0;}
-li{margin:10px 0;}
-button.link-btn{background:none;border:none;color:#2563eb;font-size:18px;cursor:pointer;padding:0;}
+li{margin:0.5em 0;}
+button.link-btn{background:none;border:none;color:#2563eb;cursor:pointer;padding:0;font-size:1.2em;}
 button.link-btn:hover{text-decoration:underline;}
-.leader-text{margin-left:8px;font-weight:bold;color:#15803d;}
-.leader-score{color:#000;margin-left:4px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));max-width:1000px;margin:0 auto;gap:14px;}
-.card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;}
-.class-name{font-weight:bold;color:#2563eb;}
-.points{font-weight:bold;color:#14532d;float:right;}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
-.controls input{grid-column:span 2;padding:6px;}
-.controls button{padding:8px;border:none;color:#fff;font-weight:bold;border-radius:6px;cursor:pointer;}
+.leader-text{margin-left:0.5em;font-weight:bold;color:#15803d;font-size:1em;}
+.leader-score{color:#000;margin-left:0.2em;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));max-width:1000px;margin:0 auto;gap:0.5rem;}
+.card{background:#fff;border:1px solid #ddd;border-radius:1rem;padding:1rem;display:flex;flex-direction:column;}
+.class-name{font-weight:bold;color:#2563eb;font-size:1.1em;}
+.points{font-weight:bold;color:#14532d;margin-left:auto;font-size:1em;}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:0.3rem;margin-top:0.5rem;}
+.controls input{grid-column:span 2;padding:0.5rem;font-size:1em;width:100%;}
+.controls button{padding:0.5rem;border:none;color:#fff;font-weight:bold;border-radius:0.5rem;cursor:pointer;font-size:1em;}
 .btn-add{background:#16a34a;}
 .btn-take{background:#dc2626;}
 .btn-undo{grid-column:span 2;background:#6b7280;}
-.reasons-wrapper{margin-top:10px;max-height:180px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:8px;background:#f9fafb;}
-.reason-entry{font-size:14px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed #ccc;}
+.reasons-wrapper{margin-top:0.5rem;max-height:8rem;overflow-y:auto;border:1px solid #ddd;padding:0.5rem;border-radius:0.5rem;background:#f9fafb;font-size:0.9em;}
+.reason-entry{margin-bottom:0.3rem;padding-bottom:0.3rem;border-bottom:1px dashed #ccc;}
 .reason-entry:last-child{border-bottom:none;}
-.reason-time{font-size:12px;color:#555;}
+.reason-time{font-size:0.7em;color:#555;}
 .reason-add{color:#14532d;font-weight:bold;}
 .reason-take{color:#b91c1c;font-weight:bold;}
-.admin-link{position:fixed;bottom:10px;right:10px;opacity:0.7;z-index:1000;}
-.admin-link button{font-size:12px;color:#555;}
+.admin-link{position:fixed;bottom:0.5rem;right:0.5rem;opacity:0.7;z-index:1000;}
+.admin-link button{font-size:0.7rem;color:#555;}
+
+/* Mobile-friendly adjustments */
+@media (max-width: 500px) {
+  html { font-size:5vw; } /* slightly bigger text on tiny screens */
+  .controls { grid-template-columns: 1fr; }
+  .controls button { width:100%; }
+  .points { font-size:1.2em; }
+  .card { padding:0.8rem; }
+}
 </style>
 </head>
 <body>
@@ -66,7 +76,6 @@ const db = firebase.database();
 
 let grades = {};
 
-// Load grades in real time
 function loadData() {
   db.ref("grades").on("value", snapshot => {
     grades = snapshot.val() || {};
@@ -74,12 +83,10 @@ function loadData() {
   });
 }
 
-// Save class data
 function saveClassPoints(gradeName, className, data) {
   db.ref(`grades/${gradeName}/${className}`).set(data);
 }
 
-// HOME
 function renderHome() {
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
@@ -102,7 +109,6 @@ function renderHome() {
   }
 }
 
-// GRADE PAGE
 function renderGrade(gradeName) {
   document.getElementById("home").style.display = "none";
   const view = document.getElementById("view");
@@ -115,7 +121,7 @@ function renderGrade(gradeName) {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div><span class="class-name">${className}</span><span class="points">${data.points || 0}</span></div>
+      <div style="display:flex;align-items:center;"><span class="class-name">${className}</span><span class="points">${data.points || 0}</span></div>
       <div class="controls">
         <input placeholder="이유 입력" maxlength="30">
         <button class="btn-add">+2</button>
@@ -158,10 +164,10 @@ function renderGrade(gradeName) {
       saveClassPoints(gradeName, className, data);
     }
 
-    card.querySelector(".btn-add").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); addReason(2, "+2점"); });
-    card.querySelector(".btn-take").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); addReason(-1, "-1점"); });
-    undoBtn.addEventListener("click", e => {
-      e.preventDefault(); e.stopPropagation();
+    card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
+    card.querySelector(".btn-take").onclick = () => addReason(-1, "-1점");
+
+    undoBtn.onclick = () => {
       if (!lastEntry) return;
       data.points -= lastEntry.delta;
       data.reasons.pop();
@@ -170,13 +176,12 @@ function renderGrade(gradeName) {
       scoreEl.textContent = data.points;
       renderReasons();
       saveClassPoints(gradeName, className, data);
-    });
+    };
 
     grid.appendChild(card);
   }
 }
 
-// ADMIN
 function checkAdminPassword() {
   const pw = prompt("관리자 비밀번호를 입력하세요:");
   if (pw === "delete") renderAdmin();
@@ -207,7 +212,6 @@ function renderAdmin() {
   }
 }
 
-// EVENTS
 document.addEventListener("click", e => {
   if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if (e.target.id === "back-home") renderHome();
