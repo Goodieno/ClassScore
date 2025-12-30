@@ -65,12 +65,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
+let currentGrade = null; // tracks current open grade
 
 // Load grades in real time
 function loadData() {
   db.ref("grades").on("value", snapshot => {
     grades = snapshot.val() || {};
-    renderHome();
+    if (!currentGrade) {
+      renderHome();
+    } else {
+      renderGrade(currentGrade);
+    }
   });
 }
 
@@ -104,6 +109,7 @@ function renderHome() {
 
 // GRADE PAGE
 function renderGrade(gradeName) {
+  currentGrade = gradeName;
   document.getElementById("home").style.display = "none";
   const view = document.getElementById("view");
   view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${gradeName} 점수판</h2><div class="grid"></div>`;
@@ -156,7 +162,6 @@ function renderGrade(gradeName) {
       input.value = "";
       renderReasons();
       saveClassPoints(gradeName, className, data);
-      // stays on same page
     }
 
     card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
@@ -211,7 +216,10 @@ function renderAdmin() {
 // EVENTS
 document.addEventListener("click", e => {
   if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
-  if (e.target.id === "back-home") renderHome();
+  if (e.target.id === "back-home") {
+    currentGrade = null;
+    renderHome();
+  }
   if (e.target.id === "admin-link") checkAdminPassword();
 });
 
