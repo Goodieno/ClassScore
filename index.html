@@ -14,17 +14,17 @@ body {
   font-family: Arial, sans-serif; 
   padding: 2vw; 
   background: #f0f4f8; 
-  font-size: 1.2vw; /* Base responsive font size */
+  font-size: clamp(12px, 1.2vw, 20px); /* dynamically scales */
 }
-h1 { font-size: 3vw; margin-bottom: 1vw; }
-h2 { font-size: 2.5vw; margin-bottom: 1vw; }
+h1 { font-size: clamp(24px, 4vw, 48px); margin-bottom: 1vw; }
+h2 { font-size: clamp(20px, 3vw, 36px); margin-bottom: 1vw; }
 ul { list-style: none; padding: 0; }
 li { margin: 1vw 0; }
 button.link-btn { 
   background: none; 
   border: none; 
   color: #2563eb; 
-  font-size: 1.5vw; 
+  font-size: clamp(16px, 1.5vw, 24px); 
   cursor: pointer; 
   padding: 0; 
 }
@@ -44,16 +44,16 @@ button.link-btn:hover { text-decoration: underline; }
 /* GRID */
 .grid { 
   display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(25vw, 1fr)); 
-  max-width: 1000px; 
+  grid-template-columns: repeat(auto-fit, minmax(clamp(220px,25%,300px), 1fr)); 
+  max-width: 1200px; 
   margin: 0 auto; 
-  gap: 1vw; 
+  gap: clamp(10px, 1vw, 20px); 
 }
 .card { 
   background: #fff; 
   border: 1px solid #ddd; 
   border-radius: 10px; 
-  padding: 1vw; 
+  padding: clamp(10px,1vw,20px); 
   box-shadow: 0 4px 8px rgba(0,0,0,0.05);
   transition: transform 0.2s ease; 
 }
@@ -62,37 +62,37 @@ button.link-btn:hover { text-decoration: underline; }
 .class-name { 
   font-weight: bold; 
   color: #2563eb; 
-  font-size: 1.5vw;
+  font-size: clamp(16px,1.5vw,24px);
 }
 .points { 
   font-weight: bold; 
   color: #14532d; 
   float: right; 
-  font-size: 1.5vw;
+  font-size: clamp(16px,1.5vw,24px);
 }
 
 /* CONTROLS */
 .controls { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
-  gap: 0.5vw; 
-  margin-top: 0.8vw; 
+  gap: clamp(5px,0.5vw,10px); 
+  margin-top: clamp(5px,0.8vw,10px); 
 }
 .controls input { 
   grid-column: span 2; 
-  padding: 0.5vw; 
-  font-size: 1vw; 
+  padding: clamp(5px,0.5vw,10px); 
+  font-size: clamp(14px,1vw,18px); 
   border-radius: 6px; 
   border: 1px solid #ccc; 
 }
 .controls button { 
-  padding: 0.8vw; 
+  padding: clamp(6px,0.8vw,12px); 
   border: none; 
   color: #fff; 
   font-weight: bold; 
   border-radius: 6px; 
   cursor: pointer; 
-  font-size: 1vw; 
+  font-size: clamp(14px,1vw,18px);
 }
 .btn-add { background: #16a34a; }
 .btn-take { background: #dc2626; }
@@ -103,23 +103,23 @@ button.link-btn:hover { text-decoration: underline; }
 
 /* REASONS */
 .reasons-wrapper { 
-  margin-top: 0.8vw; 
-  max-height: 20vw; 
+  margin-top: clamp(5px,0.8vw,10px); 
+  max-height: clamp(120px,20vw,300px); 
   overflow-y: auto; 
   border: 1px solid #ddd; 
-  padding: 0.8vw; 
+  padding: clamp(5px,0.8vw,10px); 
   border-radius: 8px; 
   background: #f9fafb; 
 }
 .reason-entry { 
-  font-size: 0.9vw; 
-  margin-bottom: 0.5vw; 
-  padding-bottom: 0.5vw; 
+  font-size: clamp(12px,0.9vw,16px); 
+  margin-bottom: clamp(3px,0.5vw,6px); 
+  padding-bottom: clamp(3px,0.5vw,6px); 
   border-bottom: 1px dashed #ccc; 
 }
 .reason-entry:last-child { border-bottom: none; }
 .reason-time { 
-  font-size: 0.7vw; 
+  font-size: clamp(10px,0.7vw,14px); 
   color: #555; 
 }
 .reason-add { color: #14532d; font-weight: bold; }
@@ -134,20 +134,8 @@ button.link-btn:hover { text-decoration: underline; }
   z-index: 1000; 
 }
 .admin-link button { 
-  font-size: 0.9vw; 
+  font-size: clamp(12px,0.9vw,16px); 
   color: #555; 
-}
-
-/* RESPONSIVE TEXT */
-@media (max-width: 768px) {
-  body { font-size: 3vw; }
-  h1 { font-size: 6vw; }
-  h2 { font-size: 5vw; }
-  .class-name, .points { font-size: 3.5vw; }
-  .controls button { font-size: 3vw; padding: 3vw; }
-  .controls input { font-size: 2.5vw; padding: 2vw; }
-  .reason-entry { font-size: 2.5vw; }
-  .reason-time { font-size: 2vw; }
 }
 </style>
 </head>
@@ -279,4 +267,49 @@ function renderGrade(gradeName) {
       undoBtn.disabled = true;
       scoreEl.textContent = data.points;
       renderReasons();
-      saveClassPoint
+      saveClassPoints(gradeName, className, data);
+    };
+
+    grid.appendChild(card);
+  }
+}
+
+function checkAdminPassword() {
+  const pw = prompt("관리자 비밀번호를 입력하세요:");
+  if (pw === "delete") renderAdmin();
+  else if (pw !== null) alert("비밀번호가 올바르지 않습니다.");
+}
+
+function renderAdmin() {
+  document.getElementById("home").style.display = "none";
+  const view = document.getElementById("view");
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>관리자 패널</h2><p>학년별 점수를 초기화할 수 있습니다.</p>`;
+  for (const gradeName in grades) {
+    const btn = document.createElement("button");
+    btn.className = "link-btn";
+    btn.textContent = `${gradeName} 점수 초기화`;
+    btn.onclick = () => {
+      if (!confirm(`${gradeName} 점수를 모두 초기화할까요?`)) return;
+      const classes = grades[gradeName];
+      for (const className in classes) {
+        classes[className].points = 0;
+        classes[className].reasons = [];
+        saveClassPoints(gradeName, className, classes[className]);
+      }
+      alert(`${gradeName} 점수가 초기화되었습니다.`); renderHome();
+    };
+    view.appendChild(btn);
+    view.appendChild(document.createElement("br"));
+  }
+}
+
+document.addEventListener("click", e => {
+  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if (e.target.id === "back-home") renderHome();
+  if (e.target.id === "admin-link") checkAdminPassword();
+});
+
+loadData();
+</script>
+</body>
+</html>
