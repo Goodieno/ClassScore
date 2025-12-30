@@ -9,12 +9,21 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-/* Basic Reset */
-body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
+:root {
+  --text-scale: 1vw;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f9fafb;
+  font-size: calc(14px + var(--text-scale));
+}
+
 h1,h2{margin-bottom:16px;}
 ul{list-style:none;padding:0;}
 li{margin:10px 0;}
-button.link-btn{background:none;border:none;color:#2563eb;font-size:1rem;cursor:pointer;padding:0;}
+button.link-btn{background:none;border:none;color:#2563eb;font-size:1em;cursor:pointer;padding:0;}
 button.link-btn:hover{text-decoration:underline;}
 .leader-text{margin-left:8px;font-weight:bold;color:#15803d;}
 .leader-score{color:#000;margin-left:4px;}
@@ -37,18 +46,10 @@ button.link-btn:hover{text-decoration:underline;}
 .admin-link{position:fixed;bottom:10px;right:10px;opacity:0.7;z-index:1000;}
 .admin-link button{font-size:12px;color:#555;}
 
-/* RESPONSIVE TEXT SCALING */
-/* Mobile: larger text for readability */
-body, input, button, h1, h2 {
-  font-size: clamp(16px, 5vw, 22px); /* increased base size for mobile */
-}
-
-/* Desktop: smaller, comfortable reading */
-@media (min-width: 768px) {
-  body { font-size: 16px; }
-  button.link-btn { font-size: 18px; }
-  .reason-entry { font-size: 14px; }
-  .reason-time { font-size: 12px; }
+/* MOBILE */
+@media(max-width:768px) {
+  body { font-size: calc(16px + 2vw); }
+  .grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -175,6 +176,7 @@ function renderGrade(gradeName) {
 
     card.querySelector(".btn-add").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); addReason(2, "+2점"); });
     card.querySelector(".btn-take").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); addReason(-1, "-1점"); });
+
     undoBtn.addEventListener("click", e => {
       e.preventDefault(); e.stopPropagation();
       if (!lastEntry) return;
