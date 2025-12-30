@@ -156,7 +156,7 @@ function renderGrade(gradeName) {
       input.value = "";
       renderReasons();
       saveClassPoints(gradeName, className, data);
-      renderHome();
+      // no more renderHome() → stays on the same page
     }
 
     card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
@@ -171,7 +171,7 @@ function renderGrade(gradeName) {
       scoreEl.textContent = data.points;
       renderReasons();
       saveClassPoints(gradeName, className, data);
-      renderHome();
+      // stays on same page
     };
 
     grid.appendChild(card);
