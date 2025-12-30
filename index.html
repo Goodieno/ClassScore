@@ -65,19 +65,12 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
-let initialized = false;
-let currentGrade = null; // remember which grade page is open
 
 // Load grades in real time
 function loadData() {
   db.ref("grades").on("value", snapshot => {
     grades = snapshot.val() || {};
-    if (!initialized) {
-      renderHome();
-      initialized = true;
-    } else if (currentGrade) {
-      renderGrade(currentGrade);
-    }
+    renderHome();
   });
 }
 
@@ -88,7 +81,6 @@ function saveClassPoints(gradeName, className, data) {
 
 // HOME
 function renderHome() {
-  currentGrade = null; // reset when back home
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
   const ul = document.getElementById("grade-links");
@@ -112,7 +104,6 @@ function renderHome() {
 
 // GRADE PAGE
 function renderGrade(gradeName) {
-  currentGrade = gradeName; // remember which grade is open
   document.getElementById("home").style.display = "none";
   const view = document.getElementById("view");
   view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${gradeName} 점수판</h2><div class="grid"></div>`;
@@ -195,4 +186,36 @@ function checkAdminPassword() {
 function renderAdmin() {
   document.getElementById("home").style.display = "none";
   const view = document.getElementById("view");
-  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>관리자 패널</h2><p>학년별 점수를 초기화할 수
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>관리자 패널</h2><p>학년별 점수를 초기화할 수 있습니다.</p>`;
+  for (const gradeName in grades) {
+    const btn = document.createElement("button");
+    btn.className = "link-btn";
+    btn.textContent = `${gradeName} 점수 초기화`;
+    btn.onclick = () => {
+      if (!confirm(`${gradeName} 점수를 모두 초기화할까요?`)) return;
+      const classes = grades[gradeName];
+      for (const className in classes) {
+        classes[className].points = 0;
+        classes[className].reasons = [];
+        saveClassPoints(gradeName, className, classes[className]);
+      }
+      alert(`${gradeName} 점수가 초기화되었습니다.`);
+      renderHome();
+    };
+    view.appendChild(btn);
+    view.appendChild(document.createElement("br"));
+  }
+}
+
+// EVENTS
+document.addEventListener("click", e => {
+  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if (e.target.id === "back-home") renderHome();
+  if (e.target.id === "admin-link") checkAdminPassword();
+});
+
+loadData();
+</script>
+
+</body>
+</html>
