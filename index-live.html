@@ -5,7 +5,6 @@
 <title>학급 점수판 - 실시간</title>
 
 <style>
-/* --- same styles as your current index.html --- */
 body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
 h1, h2 { margin-bottom: 16px; }
 ul { list-style: none; padding: 0; }
@@ -48,12 +47,11 @@ button.link-btn:hover { text-decoration: underline; }
   <button class="link-btn" id="admin-link">⚙️ Admin</button>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
 
-// 🔹 Replace this with your Firebase config
+// 🔹 Replace with your Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -63,16 +61,16 @@ const firebaseConfig = {
   appId: "1:193194015446:web:41f010ef36a74df776a777"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- INITIALIZE DATA IN FIRESTORE ---
+let gradesData = {}; // live data
+
+// Initialize Firestore data if empty
 async function initData() {
   const gradesRef = doc(db, "tally", "grades");
   const snap = await getDoc(gradesRef);
   if (!snap.exists()) {
-    // Create default structure
     const data = {};
     for (let g = 1; g <= 6; g++) {
       data[g] = {};
@@ -84,37 +82,37 @@ async function initData() {
   }
 }
 
-// --- FETCH LIVE DATA ---
-async function getGrades(callback) {
+// Listen to live Firestore updates
+async function initAndListen() {
+  await initData();
   const gradesRef = doc(db, "tally", "grades");
   onSnapshot(gradesRef, snap => {
-    callback(snap.data());
+    gradesData = snap.data();
+    renderHome();
   });
 }
 
-// --- UPDATE POINTS ---
+initAndListen();
+
+// Add reason and update points in Firestore
 async function addReasonToFirestore(grade, className, delta, text) {
   const gradesRef = doc(db, "tally", "grades");
+  const snap = await getDoc(gradesRef);
+  const data = snap.data();
+
   const entry = {
     text: (delta > 0 ? "+2점: " : "-1점: ") + text,
     time: new Date().toLocaleString("ko-KR"),
     delta
   };
-  await updateDoc(gradesRef, {
-    [`${grade}.${className}.points`]: (await getDoc(gradesRef)).data()[grade][className].points + delta,
-    [`${grade}.${className}.reasons`]: arrayUnion(entry)
-  });
+
+  data[grade][className].points += delta;
+  data[grade][className].reasons.push(entry);
+
+  await setDoc(gradesRef, data);
 }
 
-// --- RENDER LOGIC (similar to your current HTML) ---
-let gradesData = {};
-initData().then(() => {
-  getGrades(data => {
-    gradesData = data;
-    renderHome();
-  });
-});
-
+// Render Home (grade links)
 function renderHome() {
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
@@ -124,23 +122,30 @@ function renderHome() {
     const li = document.createElement("li");
     const classes = gradesData[g];
     const max = Math.max(...Object.values(classes).map(c => c.points));
-    const leaders = Object.entries(classes).filter(([k,v]) => v.points===max && max>0).map(([k,v])=>({name:k, points:v.points}));
+    const leaders = Object.entries(classes)
+      .filter(([k,v]) => v.points===max && max>0)
+      .map(([k,v]) => ({name:k, points:v.points}));
+
     let leaderHTML = "";
     if (leaders.length === 1) {
       leaderHTML = `<span class="leader-text">👑 ${leaders[0].name}<span class="leader-score">(${leaders[0].points})</span></span>`;
     } else if (leaders.length>1) {
       leaderHTML = leaders.map(l=>`<span class="leader-text">🥊 ${l.name}<span class="leader-score">(${l.points})</span></span>`).join("");
     }
+
     li.innerHTML = `<button class="link-btn" data-grade="${g}">${g}학년</button> ${leaderHTML}`;
     ul.appendChild(li);
   }
 }
 
+// Render grade page
 function renderGrade(grade) {
   document.getElementById("home").style.display="none";
   const view = document.getElementById("view");
-  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>${grade}학년 점수판</h2><div class="grid"></div>`;
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button>
+                    <h2>${grade}학년 점수판</h2><div class="grid"></div>`;
   const grid = view.querySelector(".grid");
+
   Object.entries(gradesData[grade]).forEach(([className, data]) => {
     const card = document.createElement("div");
     card.className = "card";
@@ -153,15 +158,15 @@ function renderGrade(grade) {
       </div>
       <div class="reasons-wrapper"></div>`;
     const input = card.querySelector("input");
-    const scoreEl = card.querySelector(".points");
     const history = card.querySelector(".reasons-wrapper");
+    const scoreEl = card.querySelector(".points");
 
     function renderReasons() {
       history.innerHTML = "";
-      data.reasons.forEach(r=>{
-        const div=document.createElement("div");
-        div.className=`reason-entry ${r.delta>0?'reason-add':'reason-take'}`;
-        div.innerHTML=`<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
+      data.reasons.forEach(r => {
+        const div = document.createElement("div");
+        div.className = `reason-entry ${r.delta>0?'reason-add':'reason-take'}`;
+        div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
         history.appendChild(div);
       });
       history.scrollTop = history.scrollHeight;
@@ -183,9 +188,45 @@ function renderGrade(grade) {
   });
 }
 
+// --- ADMIN PANEL ---
+function checkAdminPassword() {
+  const pw = prompt("관리자 비밀번호를 입력하세요:");
+  if (pw === "delete") renderAdmin();
+  else if (pw !== null) alert("비밀번호가 올바르지 않습니다.");
+}
+
+function renderAdmin() {
+  document.getElementById("home").style.display = "none";
+  const view = document.getElementById("view");
+
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button>
+                    <h2>관리자 패널</h2>
+                    <p>학년별 점수를 초기화할 수 있습니다.</p>`;
+
+  for (let g=1; g<=6; g++) {
+    const btn = document.createElement("button");
+    btn.className = "link-btn";
+    btn.textContent = `${g}학년 점수 초기화`;
+    btn.onclick = async () => {
+      if(!confirm(`${g}학년 점수를 모두 초기화할까요?`)) return;
+      const gradesRef = doc(db,"tally","grades");
+      const snap = await getDoc(gradesRef);
+      const data = snap.data();
+      Object.keys(data[g]).forEach(cls => data[g][cls]={points:0,reasons:[]});
+      await setDoc(gradesRef,data);
+      alert(`${g}학년 점수가 초기화되었습니다.`);
+      renderHome();
+    };
+    view.appendChild(btn);
+    view.appendChild(document.createElement("br"));
+  }
+}
+
+// --- EVENT LISTENERS ---
 document.addEventListener("click", e=>{
   if(e.target.dataset.grade) renderGrade(+e.target.dataset.grade);
   if(e.target.id==="back-home") renderHome();
+  if(e.target.id==="admin-link") checkAdminPassword();
 });
 
 </script>
