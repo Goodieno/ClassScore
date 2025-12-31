@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>학급 점수판</title>
+<title>학급 점수판 (교사용)</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -51,6 +51,7 @@ button.link-btn:hover{text-decoration:underline;}
 </div>
 
 <script>
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -68,15 +69,20 @@ let grades = {};
 let classCards = {};
 let currentGrade = null;
 
+/* ======================
+   DATA LOAD (READ ONLY)
+====================== */
 function loadData() {
   db.ref("grades").on("value", snapshot => {
     grades = snapshot.val() || {};
-    if(currentGrade) renderGrade(currentGrade, true);
+    if (currentGrade) renderGrade(currentGrade, true);
     else renderHome();
   });
 }
 
-/* ✅ SAFE WRITE */
+/* ======================
+   SAFE WRITE (NO OVERWRITE)
+====================== */
 function saveClassPoints(gradeName, className, data) {
   db.ref(`grades/${gradeName}/${className}`).update({
     points: data.points || 0,
@@ -84,7 +90,183 @@ function saveClassPoints(gradeName, className, data) {
   });
 }
 
-/* rest of your file is unchanged */
+/* ======================
+   HOME (GRADES)
+====================== */
+function renderHome() {
+  currentGrade = null;
+  document.getElementById("home").style.display = "block";
+  document.getElementById("view").innerHTML = "";
+
+  const ul = document.getElementById("grade-links");
+  ul.innerHTML = "";
+
+  for (const gradeName in grades) {
+    const li = document.createElement("li");
+    const classes = grades[gradeName];
+
+    const maxPoints = Math.max(...Object.values(classes).map(c => c.points || 0));
+    const leaders = Object.entries(classes).filter(
+      ([_, c]) => (c.points || 0) === maxPoints && maxPoints > 0
+    );
+
+    let leaderHTML = "";
+    if (leaders.length === 1) {
+      leaderHTML = ` <span class="leader-text">👑 ${leaders[0][0]} (${leaders[0][1].points})</span>`;
+    } else if (leaders.length > 1) {
+      leaderHTML = leaders.map(l =>
+        `<span class="leader-text">🥊 ${l[0]} (${l[1].points})</span>`
+      ).join(" ");
+    }
+
+    li.innerHTML = `<button class="link-btn" data-grade="${gradeName}">${gradeName}</button>${leaderHTML}`;
+    ul.appendChild(li);
+  }
+}
+
+/* ======================
+   GRADE VIEW
+====================== */
+function renderGrade(gradeName, isUpdate = false) {
+  currentGrade = gradeName;
+  const view = document.getElementById("view");
+
+  if (!isUpdate) {
+    document.getElementById("home").style.display = "none";
+    view.innerHTML = `
+      <button class="link-btn" id="back-home">← 돌아가기</button>
+      <h2>${gradeName} 점수판</h2>
+      <div class="grid"></div>
+    `;
+    classCards = {};
+  }
+
+  const grid = view.querySelector(".grid");
+  const classes = grades[gradeName];
+
+  for (const className in classes) {
+    const data = classes[className];
+
+    if (!classCards[className]) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div>
+          <span class="class-name">${className}</span>
+          <span class="points">${data.points || 0}</span>
+        </div>
+        <div class="controls">
+          <input placeholder="이유 입력" maxlength="30">
+          <button class="btn-add">+2</button>
+          <button class="btn-take">-1</button>
+          <button class="btn-undo" disabled>↩ Undo</button>
+        </div>
+        <div class="reasons-wrapper"></div>
+      `;
+      grid.appendChild(card);
+
+      const input = card.querySelector("input");
+      const scoreEl = card.querySelector(".points");
+      const history = card.querySelector(".reasons-wrapper");
+      const undoBtn = card.querySelector(".btn-undo");
+      let lastEntry = null;
+
+      function renderReasons() {
+        history.innerHTML = "";
+        (data.reasons || []).slice().reverse().forEach(r => {
+          const div = document.createElement("div");
+          div.className = `reason-entry ${r.delta > 0 ? "reason-add" : "reason-take"}`;
+          div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
+          history.appendChild(div);
+        });
+      }
+
+      function addReason(delta, label) {
+        const text = input.value.trim();
+        if (!text) return;
+
+        const entry = {
+          text: `${label}: ${text}`,
+          delta,
+          time: new Date().toLocaleString("ko-KR")
+        };
+
+        data.points = (data.points || 0) + delta;
+        data.reasons = data.reasons || [];
+        data.reasons.push(entry);
+        lastEntry = entry;
+
+        scoreEl.textContent = data.points;
+        undoBtn.disabled = false;
+        input.value = "";
+        renderReasons();
+        saveClassPoints(gradeName, className, data);
+      }
+
+      card.querySelector(".btn-add").onclick = () => addReason(2, "+2점");
+      card.querySelector(".btn-take").onclick = () => addReason(-1, "-1점");
+
+      undoBtn.onclick = () => {
+        if (!lastEntry) return;
+        data.points -= lastEntry.delta;
+        data.reasons.pop();
+        lastEntry = null;
+        undoBtn.disabled = true;
+        scoreEl.textContent = data.points;
+        renderReasons();
+        saveClassPoints(gradeName, className, data);
+      };
+
+      renderReasons();
+      classCards[className] = true;
+    } else {
+      grid.querySelectorAll(".card").forEach(card => {
+        card.querySelector(".points").textContent = data.points || 0;
+      });
+    }
+  }
+}
+
+/* ======================
+   ADMIN
+====================== */
+function checkAdminPassword() {
+  const pw = prompt("관리자 비밀번호를 입력하세요:");
+  if (pw === "delete") renderAdmin();
+  else if (pw !== null) alert("비밀번호가 올바르지 않습니다.");
+}
+
+function renderAdmin() {
+  document.getElementById("home").style.display = "none";
+  const view = document.getElementById("view");
+  view.innerHTML = `<button class="link-btn" id="back-home">← 돌아가기</button><h2>관리자 패널</h2>`;
+
+  for (const gradeName in grades) {
+    const btn = document.createElement("button");
+    btn.className = "link-btn";
+    btn.textContent = `${gradeName} 점수 초기화`;
+    btn.onclick = () => {
+      if (!confirm(`${gradeName} 점수를 모두 초기화할까요?`)) return;
+      for (const className in grades[gradeName]) {
+        saveClassPoints(gradeName, className, { points: 0, reasons: [] });
+      }
+      alert("초기화 완료");
+      renderHome();
+    };
+    view.appendChild(btn);
+    view.appendChild(document.createElement("br"));
+  }
+}
+
+/* ======================
+   EVENTS
+====================== */
+document.addEventListener("click", e => {
+  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if (e.target.id === "back-home") renderHome();
+  if (e.target.id === "admin-link") checkAdminPassword();
+});
+
 loadData();
 </script>
 
