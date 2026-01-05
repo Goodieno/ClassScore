@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>학급 점수판 (교사용)</meta>
+<title>학급 점수판 (교사용)</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -35,7 +35,7 @@ ul{list-style:none;padding:0;margin:0;}
 }
 
 .grade-btn{
-  width:90px;              /* 🔑 alignment key */
+  width:90px;
   text-align:left;
   font-size:20px;
   font-weight:bold;
@@ -45,9 +45,7 @@ ul{list-style:none;padding:0;margin:0;}
   cursor:pointer;
 }
 
-.grade-btn:hover{
-  text-decoration:underline;
-}
+.grade-btn:hover{text-decoration:underline;}
 
 .leader{
   font-size:14px;
@@ -165,9 +163,6 @@ ul{list-style:none;padding:0;margin:0;}
 </div>
 
 <script>
-/* ======================
-   FIREBASE
-====================== */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -185,17 +180,11 @@ let grades = {};
 let currentGrade = null;
 let classCards = {};
 
-/* ======================
-   LOAD DATA
-====================== */
 db.ref("grades").on("value", snap=>{
   grades = snap.val() || {};
   currentGrade ? renderGrade(currentGrade,true) : renderHome();
 });
 
-/* ======================
-   HOME
-====================== */
 function renderHome(){
   currentGrade = null;
   document.getElementById("home").style.display="block";
@@ -229,9 +218,6 @@ function renderHome(){
   }
 }
 
-/* ======================
-   GRADE VIEW
-====================== */
 function renderGrade(grade,isUpdate=false){
   currentGrade = grade;
   const view = document.getElementById("view");
@@ -321,9 +307,6 @@ function renderGrade(grade,isUpdate=false){
   }
 }
 
-/* ======================
-   ADMIN
-====================== */
 document.getElementById("admin-link").onclick=()=>{
   const pw=prompt("관리자 비밀번호:");
   if(pw!=="delete") return alert("비밀번호 오류");
@@ -344,9 +327,6 @@ document.getElementById("admin-link").onclick=()=>{
   }
 };
 
-/* ======================
-   EVENTS
-====================== */
 document.addEventListener("click",e=>{
   if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if(e.target.id==="back-home") renderHome();
