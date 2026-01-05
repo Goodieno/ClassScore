@@ -2,163 +2,180 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학급 점수판 (교사용)</title>
+<title>학급 점수판</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
   font-family: Arial, sans-serif;
+  background: #f1f5f9;
   margin: 0;
   padding: 16px;
-  background: #f9fafb;
+}
+
+/* ---------- Shared ---------- */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 
 h1, h2 {
-  margin-bottom: 14px;
+  text-align: center;
+  margin-bottom: 16px;
 }
 
 button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-button.link-btn {
+.link-btn {
   background: none;
-  border: none;
   color: #2563eb;
-  font-size: 18px;
-  padding: 6px 0;
+  font-weight: bold;
 }
 
-button.link-btn:hover {
-  text-decoration: underline;
+/* ---------- Home ---------- */
+.grade-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
+.grade-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  margin-bottom: 10px;
+}
+
+.leader {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.leader.win { color: #ca8a04; }
+.leader.tie { color: #7c3aed; }
+
+/* ---------- Grade View ---------- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 14px;
 }
 
 .card {
   background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 18px;
+  font-weight: bold;
   margin-bottom: 8px;
 }
 
-.class-name {
-  font-weight: bold;
-  color: #2563eb;
-}
-
-.score-area {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: bold;
-}
-
-.badge {
-  font-size: 18px;
+.points {
+  color: #14532d;
 }
 
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 8px;
 }
 
 .controls input {
   grid-column: span 2;
-  padding: 8px;
-  font-size: 16px;
-}
-
-.controls button {
   padding: 10px;
-  border: none;
-  color: #fff;
-  font-weight: bold;
   border-radius: 8px;
-  font-size: 16px;
+  border: 1px solid #ccc;
 }
 
-.btn-add { background: #16a34a; }
-.btn-take { background: #dc2626; }
+.btn-add { background: #16a34a; color: #fff; }
+.btn-take { background: #dc2626; color: #fff; }
 .btn-undo {
   grid-column: span 2;
   background: #6b7280;
+  color: #fff;
 }
 
 .reasons-wrapper {
   margin-top: 10px;
   max-height: 160px;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  background: #f8fafc;
+  border-radius: 10px;
   padding: 8px;
-  border-radius: 8px;
-  background: #f9fafb;
 }
 
 .reason-entry {
   font-size: 14px;
-  margin-bottom: 6px;
   padding-bottom: 6px;
+  margin-bottom: 6px;
   border-bottom: 1px dashed #ccc;
 }
 
-.reason-entry:last-child {
-  border-bottom: none;
-}
+.reason-add { color: #15803d; font-weight: bold; }
+.reason-take { color: #b91c1c; font-weight: bold; }
 
 .reason-time {
   font-size: 12px;
   color: #555;
 }
 
+/* ---------- Admin ---------- */
 .admin-link {
   position: fixed;
   bottom: 10px;
   right: 10px;
   opacity: 0.7;
 }
-
-@media (max-width: 480px) {
-  .card-header {
-    font-size: 16px;
-  }
-}
 </style>
 </head>
 
 <body>
 
-<div id="home">
-  <h1>학년 선택</h1>
-  <ul id="grade-links"></ul>
+<div class="container">
+
+  <!-- HOME -->
+  <div id="home" class="panel">
+    <h1>학년 선택</h1>
+    <ul id="grade-links" class="grade-list"></ul>
+  </div>
+
+  <!-- VIEW -->
+  <div id="view"></div>
+
 </div>
 
-<div id="view"></div>
-
 <div class="admin-link">
-  <button class="link-btn" id="admin-link">⚙️ Admin</button>
+  <button class="link-btn" id="admin-link">Admin</button>
 </div>
 
 <script>
-const firebaseConfig = {
+/* Firebase */
+firebase.initializeApp({
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
   databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
@@ -166,20 +183,20 @@ const firebaseConfig = {
   storageBucket: "tally-v-2.appspot.com",
   messagingSenderId: "193194015446",
   appId: "1:193194015446:web:41f010ef36a74df776a777"
-};
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 let grades = {};
 let currentGrade = null;
 
+/* Load */
 db.ref("grades").on("value", snap => {
   grades = snap.val() || {};
-  if (currentGrade) renderGrade(currentGrade);
+  if (currentGrade) renderGrade(currentGrade, true);
   else renderHome();
 });
 
+/* Home */
 function renderHome() {
   currentGrade = null;
   document.getElementById("home").style.display = "block";
@@ -188,58 +205,72 @@ function renderHome() {
   const ul = document.getElementById("grade-links");
   ul.innerHTML = "";
 
-  for (const grade in grades) {
+  for (const g in grades) {
+    const classes = grades[g];
+    const max = Math.max(...Object.values(classes).map(c => c.points || 0));
+    const leaders = Object.entries(classes).filter(([_,c]) => c.points === max && max > 0);
+
+    let badge = "";
+    if (leaders.length === 1) badge = `<span class="leader win">👑 ${leaders[0][0]}</span>`;
+    else if (leaders.length > 1) badge = `<span class="leader tie">🤝 공동 1위</span>`;
+
     const li = document.createElement("li");
-    li.innerHTML = `<button class="link-btn" data-grade="${grade}">${grade}</button>`;
+    li.className = "grade-item";
+    li.innerHTML = `
+      <button class="link-btn" data-grade="${g}">${g}</button>
+      ${badge}
+    `;
     ul.appendChild(li);
   }
 }
 
-function renderGrade(gradeName) {
-  currentGrade = gradeName;
-  document.getElementById("home").style.display = "none";
-
+/* Grade */
+function renderGrade(grade, update=false) {
+  currentGrade = grade;
   const view = document.getElementById("view");
-  view.innerHTML = `
-    <button class="link-btn" id="back-home">← 돌아가기</button>
-    <h2>${gradeName} 점수판</h2>
-    <div class="grid"></div>
-  `;
+
+  if (!update) {
+    document.getElementById("home").style.display = "none";
+    view.innerHTML = `
+      <div class="panel">
+        <button class="link-btn" id="back-home">← 돌아가기</button>
+        <h2>${grade} 점수판</h2>
+        <div class="grid"></div>
+      </div>
+    `;
+  }
 
   const grid = view.querySelector(".grid");
-  const classes = grades[gradeName];
+  grid.innerHTML = "";
 
-  const maxScore = Math.max(...Object.values(classes).map(c => c.points || 0));
-  const leaders = Object.values(classes).filter(c => (c.points || 0) === maxScore && maxScore > 0).length;
-
-  for (const className in classes) {
-    const data = classes[className];
-    const isLeader = data.points === maxScore && maxScore > 0;
-    const badge = isLeader ? (leaders > 1 ? "🤝" : "🥇") : "";
+  for (const cls in grades[grade]) {
+    const d = grades[grade][cls];
 
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
       <div class="card-header">
-        <span class="class-name">${className}</span>
-        <div class="score-area">
-          <span>${data.points || 0}</span>
-          <span class="badge">${badge}</span>
-        </div>
+        <span>${cls}</span>
+        <span class="points">${d.points || 0}</span>
+      </div>
+      <div class="controls">
+        <input placeholder="이유 입력" maxlength="30">
+        <button class="btn-add">+2</button>
+        <button class="btn-take">-1</button>
       </div>
       <div class="reasons-wrapper">
-        ${(data.reasons || []).slice().reverse().map(r =>
-          `<div class="reason-entry">
+        ${(d.reasons||[]).slice().reverse().map(r=>`
+          <div class="reason-entry ${r.delta>0?'reason-add':'reason-take'}">
             <div>${r.text}</div>
             <div class="reason-time">${r.time}</div>
-          </div>`
-        ).join("")}
+          </div>`).join("")}
       </div>
     `;
     grid.appendChild(card);
   }
 }
 
+/* Events */
 document.addEventListener("click", e => {
   if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if (e.target.id === "back-home") renderHome();
