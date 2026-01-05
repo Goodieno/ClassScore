@@ -12,22 +12,13 @@
 <style>
 body {
   font-family: Arial, sans-serif;
-  padding: 12px;
-  background: #f4f6f8;
-  text-align: center;
+  margin: 0;
+  padding: 16px;
+  background: #f9fafb;
 }
 
 h1, h2 {
   margin-bottom: 14px;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  margin: 12px 0;
 }
 
 button {
@@ -38,21 +29,12 @@ button.link-btn {
   background: none;
   border: none;
   color: #2563eb;
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  padding: 6px 0;
 }
 
 button.link-btn:hover {
   text-decoration: underline;
-}
-
-.panel {
-  background: #fff;
-  border-radius: 16px;
-  padding: 16px;
-  max-width: 960px;
-  margin: 0 auto 16px auto;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
 
 .grid {
@@ -64,49 +46,54 @@ button.link-btn:hover {
 .card {
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 14px;
-  text-align: left;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 
 .class-name {
   font-weight: bold;
-  font-size: 18px;
   color: #2563eb;
 }
 
-.points {
-  font-size: 20px;
+.score-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: bold;
-  color: #14532d;
+}
+
+.badge {
+  font-size: 18px;
 }
 
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .controls input {
   grid-column: span 2;
-  padding: 10px;
+  padding: 8px;
   font-size: 16px;
 }
 
 .controls button {
-  padding: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 10px;
+  padding: 10px;
   border: none;
   color: #fff;
+  font-weight: bold;
+  border-radius: 8px;
+  font-size: 16px;
 }
 
 .btn-add { background: #16a34a; }
@@ -117,19 +104,19 @@ button.link-btn:hover {
 }
 
 .reasons-wrapper {
-  margin-top: 12px;
+  margin-top: 10px;
   max-height: 160px;
   overflow-y: auto;
   border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: 8px;
   background: #f9fafb;
 }
 
 .reason-entry {
   font-size: 14px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
   border-bottom: 1px dashed #ccc;
 }
 
@@ -142,25 +129,24 @@ button.link-btn:hover {
   color: #555;
 }
 
-.reason-add { color: #14532d; font-weight: bold; }
-.reason-take { color: #b91c1c; font-weight: bold; }
-
 .admin-link {
   position: fixed;
   bottom: 10px;
   right: 10px;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
-.admin-link button {
-  font-size: 14px;
-  color: #555;
+@media (max-width: 480px) {
+  .card-header {
+    font-size: 16px;
+  }
 }
 </style>
 </head>
+
 <body>
 
-<div id="home" class="panel">
+<div id="home">
   <h1>학년 선택</h1>
   <ul id="grade-links"></ul>
 </div>
@@ -172,7 +158,6 @@ button.link-btn:hover {
 </div>
 
 <script>
-// Firebase config (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -187,23 +172,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
-let classCards = {};
 let currentGrade = null;
 
-/* ======================
-   DATA LOAD
-====================== */
-function loadData() {
-  db.ref("grades").on("value", snapshot => {
-    grades = snapshot.val() || {};
-    if (currentGrade) renderGrade(currentGrade, true);
-    else renderHome();
-  });
-}
+db.ref("grades").on("value", snap => {
+  grades = snap.val() || {};
+  if (currentGrade) renderGrade(currentGrade);
+  else renderHome();
+});
 
-/* ======================
-   HOME
-====================== */
 function renderHome() {
   currentGrade = null;
   document.getElementById("home").style.display = "block";
@@ -212,144 +188,63 @@ function renderHome() {
   const ul = document.getElementById("grade-links");
   ul.innerHTML = "";
 
-  for (const gradeName in grades) {
+  for (const grade in grades) {
     const li = document.createElement("li");
-    li.innerHTML = `<button class="link-btn" data-grade="${gradeName}">${gradeName}</button>`;
+    li.innerHTML = `<button class="link-btn" data-grade="${grade}">${grade}</button>`;
     ul.appendChild(li);
   }
 }
 
-/* ======================
-   GRADE VIEW
-====================== */
-function renderGrade(gradeName, isUpdate=false) {
+function renderGrade(gradeName) {
   currentGrade = gradeName;
-  const view = document.getElementById("view");
+  document.getElementById("home").style.display = "none";
 
-  if (!isUpdate) {
-    document.getElementById("home").style.display = "none";
-    view.innerHTML = `
-      <div class="panel">
-        <button class="link-btn" id="back-home">← 돌아가기</button>
-        <h2>${gradeName} 점수판</h2>
-        <div class="grid"></div>
-      </div>
-    `;
-    classCards = {};
-  }
+  const view = document.getElementById("view");
+  view.innerHTML = `
+    <button class="link-btn" id="back-home">← 돌아가기</button>
+    <h2>${gradeName} 점수판</h2>
+    <div class="grid"></div>
+  `;
 
   const grid = view.querySelector(".grid");
   const classes = grades[gradeName];
 
+  const maxScore = Math.max(...Object.values(classes).map(c => c.points || 0));
+  const leaders = Object.values(classes).filter(c => (c.points || 0) === maxScore && maxScore > 0).length;
+
   for (const className in classes) {
     const data = classes[className];
+    const isLeader = data.points === maxScore && maxScore > 0;
+    const badge = isLeader ? (leaders > 1 ? "🤝" : "🥇") : "";
 
-    if (!classCards[className]) {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <div class="card-header">
-          <span class="class-name">${className}</span>
-          <span class="points">${data.points || 0}</span>
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="class-name">${className}</span>
+        <div class="score-area">
+          <span>${data.points || 0}</span>
+          <span class="badge">${badge}</span>
         </div>
-        <div class="controls">
-          <input placeholder="이유 입력" maxlength="30">
-          <button class="btn-add">+2</button>
-          <button class="btn-take">-1</button>
-          <button class="btn-undo" disabled>↩ Undo</button>
-        </div>
-        <div class="reasons-wrapper"></div>
-      `;
-      grid.appendChild(card);
-
-      const input = card.querySelector("input");
-      const scoreEl = card.querySelector(".points");
-      const history = card.querySelector(".reasons-wrapper");
-      const undoBtn = card.querySelector(".btn-undo");
-      let lastEntry = null;
-
-      function renderReasons() {
-        history.innerHTML = "";
-        (data.reasons || []).slice().reverse().forEach(r => {
-          const div = document.createElement("div");
-          div.className = "reason-entry";
-          div.innerHTML = `<div>${r.text}</div><div class="reason-time">${r.time}</div>`;
-          history.appendChild(div);
-        });
-      }
-
-      function save() {
-        db.ref(`grades/${gradeName}/${className}`).update({
-          points: data.points,
-          reasons: data.reasons
-        });
-      }
-
-      function add(delta, label) {
-        const text = input.value.trim();
-        if (!text) return;
-
-        const entry = {
-          text: `${label}: ${text}`,
-          delta,
-          time: new Date().toLocaleString("ko-KR")
-        };
-
-        data.points = (data.points || 0) + delta;
-        data.reasons = data.reasons || [];
-        data.reasons.push(entry);
-        lastEntry = entry;
-
-        scoreEl.textContent = data.points;
-        undoBtn.disabled = false;
-        input.value = "";
-        renderReasons();
-        save();
-      }
-
-      card.querySelector(".btn-add").onclick = () => add(2, "+2점");
-      card.querySelector(".btn-take").onclick = () => add(-1, "-1점");
-
-      undoBtn.onclick = () => {
-        if (!lastEntry) return;
-        data.points -= lastEntry.delta;
-        data.reasons.pop();
-        lastEntry = null;
-        undoBtn.disabled = true;
-        scoreEl.textContent = data.points;
-        renderReasons();
-        save();
-      };
-
-      renderReasons();
-      classCards[className] = true;
-    } else {
-      grid.querySelectorAll(".card").forEach(card => {
-        card.querySelector(".points").textContent = data.points || 0;
-      });
-    }
+      </div>
+      <div class="reasons-wrapper">
+        ${(data.reasons || []).slice().reverse().map(r =>
+          `<div class="reason-entry">
+            <div>${r.text}</div>
+            <div class="reason-time">${r.time}</div>
+          </div>`
+        ).join("")}
+      </div>
+    `;
+    grid.appendChild(card);
   }
 }
 
-/* ======================
-   ADMIN
-====================== */
-function checkAdminPassword() {
-  const pw = prompt("관리자 비밀번호:");
-  if (pw === "delete") renderHome();
-  else if (pw !== null) alert("비밀번호 오류");
-}
-
-/* ======================
-   EVENTS
-====================== */
 document.addEventListener("click", e => {
   if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if (e.target.id === "back-home") renderHome();
-  if (e.target.id === "admin-link") checkAdminPassword();
 });
-
-loadData();
 </script>
+
 </body>
 </html>
