@@ -8,32 +8,40 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{
   font-family:Arial, sans-serif;
-  padding:20px;
-  background:#f9fafb;
+  background:#f4f6f8;
   margin:0;
+  padding:16px;
 }
 
-h1,h2{margin-bottom:16px;}
+/* ===== HEADERS ===== */
+h1{
+  text-align:center;
+  margin:10px 0 20px;
+}
+h2{margin-bottom:16px;}
 
-ul{list-style:none;padding:0;margin:0;}
-
+/* ===== HOME LIST ===== */
 #grade-links{
   max-width:420px;
   margin:0 auto;
-  text-align:left;
+  padding:0;
+  list-style:none;
 }
 
 #grade-links li{
   display:flex;
   align-items:center;
   gap:12px;
-  padding:14px 0;
+  padding:14px 10px;
   border-bottom:1px solid #e5e7eb;
 }
 
+/* fixed width so badges align vertically */
 .grade-btn{
   width:90px;
   text-align:left;
@@ -43,6 +51,7 @@ ul{list-style:none;padding:0;margin:0;}
   border:none;
   color:#2563eb;
   cursor:pointer;
+  padding:0;
 }
 
 .grade-btn:hover{text-decoration:underline;}
@@ -56,6 +65,7 @@ ul{list-style:none;padding:0;margin:0;}
 .leader.win{color:#b45309;}
 .leader.tie{color:#7c3aed;}
 
+/* ===== GRADE VIEW ===== */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
@@ -66,9 +76,9 @@ ul{list-style:none;padding:0;margin:0;}
 
 .card{
   background:#fff;
-  border:1px solid #ddd;
-  border-radius:12px;
+  border-radius:14px;
   padding:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
 .class-name{
@@ -81,45 +91,52 @@ ul{list-style:none;padding:0;margin:0;}
   float:right;
 }
 
+/* ===== CONTROLS ===== */
 .controls{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:6px;
-  margin-top:8px;
+  gap:8px;
+  margin-top:10px;
 }
 
 .controls input{
   grid-column:span 2;
-  padding:6px;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
 }
 
 .controls button{
-  padding:8px;
+  padding:10px;
   border:none;
   color:#fff;
   font-weight:bold;
-  border-radius:6px;
+  border-radius:8px;
   cursor:pointer;
 }
 
 .btn-add{background:#16a34a;}
 .btn-take{background:#dc2626;}
-.btn-undo{grid-column:span 2;background:#6b7280;}
+.btn-undo{
+  grid-column:span 2;
+  background:#6b7280;
+}
 
+/* ===== REASONS ===== */
 .reasons-wrapper{
-  margin-top:10px;
+  margin-top:12px;
   max-height:180px;
   overflow-y:auto;
   border:1px solid #ddd;
-  padding:8px;
-  border-radius:8px;
+  padding:10px;
+  border-radius:10px;
   background:#f9fafb;
 }
 
 .reason-entry{
   font-size:14px;
-  margin-bottom:6px;
-  padding-bottom:6px;
+  margin-bottom:8px;
+  padding-bottom:8px;
   border-bottom:1px dashed #ccc;
 }
 
@@ -133,18 +150,25 @@ ul{list-style:none;padding:0;margin:0;}
   color:#555;
 }
 
+/* ===== ADMIN ===== */
 .admin-link{
   position:fixed;
-  bottom:10px;
-  right:10px;
-  opacity:0.7;
+  bottom:12px;
+  right:12px;
+  opacity:0.8;
 }
 
 .admin-link button{
-  font-size:12px;
   background:none;
   border:none;
+  font-size:13px;
   cursor:pointer;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width:600px){
+  .grade-btn{font-size:18px;}
+  .leader{font-size:13px;}
 }
 </style>
 </head>
@@ -185,32 +209,31 @@ db.ref("grades").on("value", snap=>{
   currentGrade ? renderGrade(currentGrade,true) : renderHome();
 });
 
+/* ===== HOME ===== */
 function renderHome(){
-  currentGrade = null;
+  currentGrade=null;
   document.getElementById("home").style.display="block";
   document.getElementById("view").innerHTML="";
 
-  const ul = document.getElementById("grade-links");
+  const ul=document.getElementById("grade-links");
   ul.innerHTML="";
 
   for(const grade in grades){
-    const classes = grades[grade];
-    const scores = Object.values(classes).map(c=>c.points||0);
-    const max = Math.max(...scores);
-
-    const leaders = Object.entries(classes)
+    const classes=grades[grade];
+    const max=Math.max(...Object.values(classes).map(c=>c.points||0));
+    const leaders=Object.entries(classes)
       .filter(([_,c])=>c.points===max && max>0)
-      .map(([name])=>name);
+      .map(([n])=>n);
 
     let badge="";
     if(leaders.length===1){
-      badge = `<span class="leader win">👑 1위 (${leaders[0]})</span>`;
+      badge=`<span class="leader win">👑 1위 (${leaders[0]})</span>`;
     }else if(leaders.length>1){
-      badge = `<span class="leader tie">🥊 공동 1위 (${leaders.join(", ")})</span>`;
+      badge=`<span class="leader tie">🥊 공동 1위 (${leaders.join(", ")})</span>`;
     }
 
-    const li = document.createElement("li");
-    li.innerHTML = `
+    const li=document.createElement("li");
+    li.innerHTML=`
       <button class="grade-btn" data-grade="${grade}">${grade}</button>
       ${badge}
     `;
@@ -218,28 +241,29 @@ function renderHome(){
   }
 }
 
+/* ===== GRADE VIEW ===== */
 function renderGrade(grade,isUpdate=false){
-  currentGrade = grade;
-  const view = document.getElementById("view");
+  currentGrade=grade;
+  const view=document.getElementById("view");
 
   if(!isUpdate){
     document.getElementById("home").style.display="none";
-    view.innerHTML = `
+    view.innerHTML=`
       <button class="grade-btn" id="back-home">← 돌아가기</button>
       <h2>${grade} 점수판</h2>
       <div class="grid"></div>
     `;
-    classCards = {};
+    classCards={};
   }
 
-  const grid = view.querySelector(".grid");
-  const classes = grades[grade];
+  const grid=view.querySelector(".grid");
+  const classes=grades[grade];
 
   for(const name in classes){
-    const data = classes[name];
+    const data=classes[name];
 
     if(!classCards[name]){
-      const card = document.createElement("div");
+      const card=document.createElement("div");
       card.className="card";
       card.innerHTML=`
         <div>
@@ -256,10 +280,10 @@ function renderGrade(grade,isUpdate=false){
       `;
       grid.appendChild(card);
 
-      const input = card.querySelector("input");
-      const scoreEl = card.querySelector(".points");
-      const history = card.querySelector(".reasons-wrapper");
-      const undo = card.querySelector(".btn-undo");
+      const input=card.querySelector("input");
+      const scoreEl=card.querySelector(".points");
+      const history=card.querySelector(".reasons-wrapper");
+      const undo=card.querySelector(".btn-undo");
       let last=null;
 
       function draw(){
@@ -307,18 +331,21 @@ function renderGrade(grade,isUpdate=false){
   }
 }
 
+/* ===== ADMIN ===== */
 document.getElementById("admin-link").onclick=()=>{
   const pw=prompt("관리자 비밀번호:");
   if(pw!=="delete") return alert("비밀번호 오류");
-  const v=document.getElementById("view");
+
   document.getElementById("home").style.display="none";
+  const v=document.getElementById("view");
   v.innerHTML=`<button class="grade-btn" id="back-home">← 돌아가기</button><h2>관리자</h2>`;
+
   for(const g in grades){
     const b=document.createElement("button");
     b.className="grade-btn";
-    b.textContent=`${g} 초기화`;
+    b.textContent=`${g} 점수 초기화`;
     b.onclick=()=>{
-      if(!confirm("초기화할까요?")) return;
+      if(!confirm("정말 초기화할까요?")) return;
       for(const c in grades[g]){
         db.ref(`grades/${g}/${c}`).update({points:0,reasons:[]});
       }
