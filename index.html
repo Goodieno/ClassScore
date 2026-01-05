@@ -12,49 +12,67 @@
 <style>
 body{
   font-family:Arial,sans-serif;
-  margin:12px;
-  background:linear-gradient(180deg,#f4f6f8,#eef1f5);
+  margin:0;
+  background:#f3f4f6;
   text-align:center;
 }
 
-h1{font-size:1.7em;margin-bottom:12px;}
+h1{
+  font-size:1.9em;
+  margin:24px 0 16px;
+}
+
 h2{margin:12px 0;}
 
 .panel{
   background:#fff;
-  border-radius:18px;
-  padding:20px 16px;
-  max-width:900px;
-  margin:16px auto;
-  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  border-radius:14px;
+  padding:20px;
+  max-width:720px;
+  margin:20px auto;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
 }
 
-ul{list-style:none;padding:0;margin:0;}
-li{margin:10px 0;}
+/* ===== HOME PAGE FIX ===== */
 
-button{
-  padding:10px 14px;
-  font-size:16px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
+#grade-links{
+  max-width:420px;
+  margin:0 auto;
+  text-align:center;
 }
 
-.link-btn{
+#grade-links li{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  padding:14px 0;
+  border-bottom:1px solid #e5e7eb;
+}
+
+#grade-links li:last-child{
+  border-bottom:none;
+}
+
+.grade-btn{
+  font-size:20px;
+  font-weight:bold;
   background:none;
   border:none;
   color:#2563eb;
-  font-size:18px;
   cursor:pointer;
 }
 
 .leader{
-  display:inline-block;
-  margin-left:8px;
+  font-size:14px;
   font-weight:bold;
+  white-space:nowrap;
 }
+
 .leader.win{color:#b45309;}
 .leader.tie{color:#7c3aed;}
+
+/* ===== CLASS VIEW (UNCHANGED) ===== */
 
 .grid{
   display:grid;
@@ -89,6 +107,9 @@ button{
 .controls button{
   font-weight:bold;
   color:#fff;
+  border:none;
+  border-radius:8px;
+  padding:8px;
 }
 
 .btn-add{background:#16a34a;}
@@ -117,6 +138,14 @@ button{
 .reason-add{color:#15803d;font-weight:bold;}
 .reason-take{color:#b91c1c;font-weight:bold;}
 .reason-time{font-size:12px;color:#555;}
+
+.link-btn{
+  background:none;
+  border:none;
+  color:#2563eb;
+  font-size:16px;
+  cursor:pointer;
+}
 
 .admin-link{
   position:fixed;
@@ -175,17 +204,18 @@ function renderHome(){
 
     let badge="";
     if(leaders.length===1){
-      badge=`<span class="leader win">👑 1위 (${leaders[0][0]})</span>`;
+      badge=`<span class="leader win">👑 ${leaders[0][0]}</span>`;
     }else if(leaders.length>1){
-      const names=leaders.map(l=>l[0]).join(", ");
-      badge=`<span class="leader tie">🤝 1위 (${names})</span>`;
+      badge=`<span class="leader tie">🤝 ${leaders.map(l=>l[0]).join(", ")}</span>`;
     }
 
     const li=document.createElement("li");
-    li.innerHTML=`<button class="link-btn" data-grade="${g}">${g}</button>${badge}`;
+    li.innerHTML=`<button class="grade-btn" data-grade="${g}">${g}</button>${badge}`;
     ul.appendChild(li);
   }
 }
+
+/* ===== EVERYTHING BELOW UNCHANGED ===== */
 
 function renderGrade(g,isUpdate=false){
   currentGrade=g;
@@ -206,8 +236,8 @@ function renderGrade(g,isUpdate=false){
   const classes=grades[g];
 
   for(const c in classes){
-    const d=classes[c];
     if(classCards[c]) continue;
+    const d=classes[c];
 
     const card=document.createElement("div");
     card.className="card";
